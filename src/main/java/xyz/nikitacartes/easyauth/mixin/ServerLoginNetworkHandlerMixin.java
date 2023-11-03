@@ -96,7 +96,7 @@ public abstract class ServerLoginNetworkHandlerMixin {
                         // Caches the request
                         mojangAccountNamesCache.add(playername);
                         config.experimental.verifiedOnlinePlayer.add(playername);
-                        config.save(new File("./mods/EasyAuth/config.json"));
+                        config.save(new File(gameDirectory + "/config/EasyAuth/config.json"));
                         // Authentication continues in original method
                     } else if (response == HttpURLConnection.HTTP_NO_CONTENT || response == HttpURLConnection.HTTP_NOT_FOUND) {
                         // Player doesn't have a Mojang account
