@@ -2,10 +2,13 @@ package xyz.nikitacartes.easyauth;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.*;
+import net.fabricmc.fabric.api.networking.v1.ServerLoginConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.Identifier;
 import xyz.nikitacartes.easyauth.commands.*;
 import xyz.nikitacartes.easyauth.event.AuthEventHandler;
 import xyz.nikitacartes.easyauth.storage.AuthConfig;
@@ -65,6 +68,10 @@ public class EasyAuth implements ModInitializer {
 
         try {
             serverProp.load(new FileReader(gameDirectory + "/server.properties"));
+            if (Boolean.parseBoolean(serverProp.getProperty("enforce-secure-profile"))) {
+                LogWarn("Disable enforce-secure-profile to allow offline players to join the server");
+                LogWarn("For more info, see https://github.com/NikitaCartes/EasyAuth/issues/68");
+            }
         } catch (IOException e) {
             LogError("Error while reading server properties: ", e);
         }
@@ -138,6 +145,10 @@ public class EasyAuth implements ModInitializer {
         ServerLifecycleEvents.START_DATA_PACK_RELOAD.register((server, serverResourceManager) -> AuthCommand.reloadConfig(null));
         ServerLifecycleEvents.SERVER_STARTED.register(this::onStartServer);
         ServerLifecycleEvents.SERVER_STOPPED.register(this::onStopServer);
+
+        Identifier earlyPhase = new Identifier(MOD_ID, "early");
+        ServerLoginConnectionEvents.QUERY_START.addPhaseOrdering(earlyPhase, Event.DEFAULT_PHASE);
+        ServerLoginConnectionEvents.QUERY_START.register(earlyPhase, AuthEventHandler::onPreLogin);
     }
 
     private void onStartServer(MinecraftServer server) {

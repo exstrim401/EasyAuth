@@ -1,5 +1,6 @@
 package xyz.nikitacartes.easyauth.utils;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,7 +16,7 @@ public class EasyLogger {
     }
 
     static void log(Level level, String message, Throwable e) {
-        logger.atLevel(level).log(Strings.concat("[EasyAuth]: ", message), e);
+        logger.atLevel(level).log("[EasyAuth]: " + message + "\n" + ExceptionUtils.getStackTrace(e));
     }
 
     public static void LogInfo(String message) {
@@ -35,18 +36,14 @@ public class EasyLogger {
     }
 
     public static void LogDebug(String message) {
-        if (config == null) {
-            log(Level.DEBUG, message);
-        } else if (config.experimental.debugMode) {
-            log(Level.DEBUG, message);
+        if (config != null && config.experimental.debugMode) {
+            log(Level.INFO, "[DEBUG]: " + message);
         }
     }
 
     public static void LogDebug(String message, Throwable e) {
-        if (config == null) {
-            log(Level.DEBUG, message);
-        } else if (config.experimental.debugMode) {
-            log(Level.DEBUG, message, e);
+        if (config != null && config.experimental.debugMode) {
+            log(Level.INFO, "[DEBUG]: " + message, e);
         }
     }
 

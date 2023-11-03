@@ -1,8 +1,10 @@
 package xyz.nikitacartes.easyauth.mixin;
 
+import net.minecraft.entity.Entity;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
@@ -47,10 +49,13 @@ public class ServerPlayerEntityMixin implements PlayerAuth {
         LogDebug(String.format("Teleporting player %s to %s", player.getName().getContent(), hide ? "spawn." : "position."));
         if (hide) {
             // Saving position
-            cache.lastLocation.dimension = player.getWorld();
+            cache.lastLocation.dimension = player.getServerWorld();
             cache.lastLocation.position = player.getPos();
             cache.lastLocation.yaw = player.getYaw();
             cache.lastLocation.pitch = player.getPitch();
+            cache.ridingEntityUUID = player.getVehicle() != null ? player.getVehicle().getUuid() : null;
+            LogDebug(String.format("Saving position of player %s", cache.lastLocation));
+            LogDebug(String.format("Saving vehicle of player %s", cache.ridingEntityUUID));
 
             // Teleports player to spawn
             player.teleport(
@@ -72,6 +77,20 @@ public class ServerPlayerEntityMixin implements PlayerAuth {
                 cache.lastLocation.yaw,
                 cache.lastLocation.pitch
         );
+        LogDebug(String.format("Teleported player to %s", cache.lastLocation));
+        // Mount player to vehicle if it exists
+        if (cache.ridingEntityUUID != null) {
+            LogDebug(String.format("Mounting player to vehicle %s", cache.ridingEntityUUID));
+            ServerWorld world = server.getWorld(cache.lastLocation.dimension.getRegistryKey());
+            if (world == null) return;
+            Entity entity = world.getEntity(cache.ridingEntityUUID);
+            if (entity != null) {
+                player.startRiding(entity, true);
+            } else {
+                LogDebug("Could not find vehicle for player " + player.getName().getContent());
+            }
+        }
+
     }
 
     /**
@@ -106,7 +125,7 @@ public class ServerPlayerEntityMixin implements PlayerAuth {
     @Override
     public Text getAuthMessage() {
         final PlayerCache cache = playerCacheMap.get(((PlayerAuth) player).getFakeUuid());
-        if (!config.main.enableGlobalPassword && cache.password.isEmpty()) {
+        if (!config.main.enableGlobalPassword && (cache == null || cache.password.isEmpty())) {
             if (config.experimental.enableServerSideTranslation) {
                 return Text.translatable("text.easyauth.notAuthenticated").append("\n").append(Text.translatable("text.easyauth.registerRequired"));
             } else {
@@ -142,7 +161,7 @@ public class ServerPlayerEntityMixin implements PlayerAuth {
      */
     @Override
     public boolean isUsingMojangAccount() {
-        return mojangAccountNamesCache.contains(player.getGameProfile().getName().toLowerCase());
+        return server.isOnlineMode() && mojangAccountNamesCache.contains(player.getGameProfile().getName().toLowerCase());
     }
 
     /**

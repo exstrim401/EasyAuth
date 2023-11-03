@@ -1,11 +1,15 @@
 package xyz.nikitacartes.easyauth.event;
 
 import com.mojang.authlib.GameProfile;
+import net.fabricmc.fabric.api.networking.v1.PacketSender;
+import net.fabricmc.fabric.api.networking.v1.ServerLoginNetworking;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.PlayerManager;
+import net.minecraft.server.network.ServerLoginNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -23,6 +27,7 @@ import java.util.regex.Pattern;
 
 import static xyz.nikitacartes.easyauth.EasyAuth.config;
 import static xyz.nikitacartes.easyauth.EasyAuth.playerCacheMap;
+import static xyz.nikitacartes.easyauth.utils.EasyLogger.LogDebug;
 
 /**
  * This class will take care of actions players try to do,
@@ -44,7 +49,6 @@ public class AuthEventHandler {
     public static Text checkCanPlayerJoinServer(GameProfile profile, PlayerManager manager) {
         // Getting the player. By this point, the player's game profile has been authenticated so the UUID is legitimate.
         String incomingPlayerUsername = profile.getName();
-        String incomingPlayerUuid = profile.getId().toString();
         PlayerEntity onlinePlayer = manager.getPlayer(incomingPlayerUsername);
 
         // Checking if player username is valid. The pattern is generated when the config is (re)loaded.
@@ -75,6 +79,11 @@ public class AuthEventHandler {
         if (config.main.maxLoginTries != -1) {
             // We won't load the player cache *into the map* if it is not already present (first join since restart)
             // because loading the player cache with a null player prevents the last location from being set.
+            if (profile.getId() == null) {
+                LogDebug("Player UUID is null, skipping kicking attempt check.");
+                return null;
+            }
+            String incomingPlayerUuid = profile.getId().toString();
             PlayerCache playerCache = playerCacheMap.containsKey(incomingPlayerUuid) ?
                     playerCacheMap.get(incomingPlayerUuid) : PlayerCache.fromJson(null, incomingPlayerUuid);
             if (playerCache.lastKicked >= System.currentTimeMillis() - 1000 * config.experimental.resetLoginAttemptsTime) {
@@ -113,6 +122,10 @@ public class AuthEventHandler {
             player.setInvisible(false);
             return;
         }
+        if (config.experimental.skipAllAuthChecks) {
+            ((PlayerAuth) player).setAuthenticated(true);
+            return;
+        }
         ((PlayerAuth) player).setAuthenticated(false);
 
 
@@ -143,8 +156,7 @@ public class AuthEventHandler {
             playerCache.lastIp = player.getIp();
 
             // Setting the session expire time
-            if (config.main.sessionTimeoutTime != -1)
-                playerCache.validUntil = System.currentTimeMillis() + config.main.sessionTimeoutTime * 1000L;
+            playerCache.validUntil = System.currentTimeMillis() + config.main.sessionTimeoutTime * 1000L;
         } else if (config.main.spawnOnJoin) {
             ((PlayerAuth) player).hidePosition(false);
 
@@ -156,6 +168,9 @@ public class AuthEventHandler {
     // Player execute command
     public static ActionResult onPlayerCommand(ServerPlayerEntity player, String command) {
         // Getting the message to then be able to check it
+        if (config.experimental.allowCommands) {
+            return ActionResult.PASS;
+        }
         if (player == null) {
             return ActionResult.PASS;
         }
@@ -165,6 +180,13 @@ public class AuthEventHandler {
             return ActionResult.PASS;
         }
         if (!((PlayerAuth) player).isAuthenticated()) {
+            for (String allowedCommand : config.experimental.allowedCommands) {
+                if (command.startsWith(allowedCommand)) {
+                    LogDebug("Player " + player.getName() + " executed command " + command + " without being authenticated.");
+                    return ActionResult.PASS;
+                }
+            }
+            LogDebug("Player " + player.getName() + " tried to execute command " + command + " without being authenticated.");
             player.sendMessage(((PlayerAuth) player).getAuthMessage(), false);
             return ActionResult.FAIL;
         }
@@ -262,6 +284,12 @@ public class AuthEventHandler {
         }
 
         return ActionResult.PASS;
+    }
+
+    public static void onPreLogin(ServerLoginNetworkHandler netHandler, MinecraftServer server, PacketSender packetSender, ServerLoginNetworking.LoginSynchronizer sync) {
+        if (config.experimental.forcedOfflineUuids) {
+            netHandler.profile = ServerLoginNetworkHandler.createOfflineProfile(netHandler.profile.getName());
+        }
     }
 
 }

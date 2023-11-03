@@ -1,7 +1,7 @@
 plugins {
     id "java"
     id "java-library"
-    id "fabric-loom" version "1.1-SNAPSHOT"
+    id "fabric-loom" version "1.3-SNAPSHOT"
     id ("com.modrinth.minotaur") version "2.+"
     id ("com.matthewprenger.cursegradle") version "1.4.0"
 }
@@ -65,7 +65,7 @@ dependencies {
     include implementation("org.mongodb:bson:${mongodb_version}")
 
     // MySQL driver
-    include implementation ("mysql:mysql-connector-java:${mysql_version}")
+    include implementation ("com.mysql:mysql-connector-j:${mysql_version}")
 
     // JNA lib
     include "net.java.dev.jna:jna:${jna_version}"
@@ -102,11 +102,11 @@ modrinth {
     token.set(System.getenv("MODRINTH_TOKEN"))
     projectId.set("aZj58GfX")
     versionNumber.set("${project.version}")
-    versionName = "[1.19.4] ${project.version}"
+    versionName = "[1.20.2] ${project.version}"
     versionType = "beta"
-    changelog.set("Releasenotes and Changelog:  \nhttps://github.com/NikitaCartes/EasyAuth/releases/tag/${project.version}")
+    changelog.set("Release notes:\nhttps://github.com/NikitaCartes/EasyAuth/releases/tag/${project.version}\n\nChangelog:\nhttps://github.com/NikitaCartes/EasyAuth/tree/HEAD/CHANGELOG.md")
     uploadFile = remapJar
-    gameVersions.addAll("1.19.4")
+    gameVersions.addAll("1.20.2")
     loaders = ["fabric", "quilt"]
     dependencies {
         required.project("P7dR8mSH") // Fabric API
@@ -118,7 +118,7 @@ curseforge {
     project {
         id = "503866"
         changelogType = "markdown"
-        changelog = "**Releasenotes and Changelog:**\n\nhttps://github.com/NikitaCartes/EasyAuth/releases/tag/${project.version}"
+        changelog = "Release notes:\nhttps://github.com/NikitaCartes/EasyAuth/releases/tag/${project.version}\n\nChangelog:\nhttps://github.com/NikitaCartes/EasyAuth/tree/HEAD/CHANGELOG.md"
         releaseType = "beta"
 
         addGameVersion("Fabric")
@@ -127,10 +127,10 @@ curseforge {
         addGameVersion("Java 18")
         addGameVersion("Java 17")
 
-        addGameVersion("1.19.4")
+        addGameVersion("1.20.2")
 
         mainArtifact(remapJar) {
-            displayName = "[1.19.4] ${project.version}"
+            displayName = "[1.20.2] ${project.version}"
             relations {
                 requiredDependency("fabric-api")
                 embeddedLibrary 'server-translation-api'

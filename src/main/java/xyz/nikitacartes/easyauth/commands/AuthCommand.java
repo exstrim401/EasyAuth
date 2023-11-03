@@ -14,9 +14,6 @@ import xyz.nikitacartes.easyauth.EasyAuth;
 import xyz.nikitacartes.easyauth.storage.AuthConfig;
 import xyz.nikitacartes.easyauth.storage.PlayerCache;
 import xyz.nikitacartes.easyauth.storage.database.DBApiException;
-import xyz.nikitacartes.easyauth.storage.database.LevelDB;
-import xyz.nikitacartes.easyauth.storage.database.MongoDB;
-import xyz.nikitacartes.easyauth.storage.database.MySQL;
 import xyz.nikitacartes.easyauth.utils.AuthHelper;
 import xyz.nikitacartes.easyauth.utils.TranslationHelper;
 
@@ -365,6 +362,7 @@ public class AuthCommand {
 
         THREADPOOL.submit(() -> {
             config.main.forcedOfflinePlayers.add(player.toLowerCase(Locale.ROOT));
+            config.experimental.verifiedOnlinePlayer.remove(player.toLowerCase(Locale.ROOT));
             config.save(new File(EasyAuth.gameDirectory + "/config/EasyAuth/config.json"));
         });
 

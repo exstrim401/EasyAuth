@@ -29,13 +29,11 @@ import xyz.nikitacartes.easyauth.storage.database.MySQL;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.regex.Pattern;
 
 import static xyz.nikitacartes.easyauth.EasyAuth.serverProp;
 import static xyz.nikitacartes.easyauth.EasyAuth.DB;
-import static xyz.nikitacartes.easyauth.utils.EasyLogger.LogError;
-import static xyz.nikitacartes.easyauth.utils.EasyLogger.LogInfo;
+import static xyz.nikitacartes.easyauth.utils.EasyLogger.*;
 
 public class AuthConfig {
     private static final Gson gson = new GsonBuilder()
@@ -66,8 +64,7 @@ public class AuthConfig {
                         config.experimental.forcedOfflineUuids = false;
                     }
                     if (config.main.premiumAutologin) {
-                        LogInfo("You cannot use server in offline mode and premiumAutologin! Disabling the latter.");
-                        config.main.premiumAutologin = false;
+                        LogInfo("You have premiumAutologin enabled. Enable online-mode so that online player can not register.");
                     }
                 }
                 if (config.experimental.enableServerSideTranslation && !FabricLoader.getInstance().isModLoaded("server_translations_api")) {
@@ -211,7 +208,7 @@ public class AuthConfig {
          * This protects premium usernames from being stolen, since cracked players
          * with name that is found in Mojang database, are kicked.
          */
-        public boolean premiumAutologin = false;
+        public boolean premiumAutologin = true;
         /**
          * Whether bedrock players should skip the authentication process.
          * You have to set online-mode to true in server.properties!
@@ -225,7 +222,7 @@ public class AuthConfig {
          * and you have some players that want to use username,
          * that is already taken.
          */
-        public ArrayList<String> forcedOfflinePlayers = new ArrayList<>(Collections.singletonList(""));
+        public ArrayList<String> forcedOfflinePlayers = new ArrayList<>();
         /**
          * Hide unauthenticated pLayers from player list
          */
@@ -303,6 +300,8 @@ public class AuthConfig {
          * Allows chat (but not commands, except for /login and /register).
          */
         public boolean allowChat = false;
+        public boolean allowCommands = false;
+        public ArrayList<String> allowedCommands = new ArrayList<>();
         /**
          * Allows player movement.
          */
@@ -390,5 +389,12 @@ public class AuthConfig {
         public boolean floodgateLoaded = false;
 
         public boolean floodgateBypassUsernameRegex = false;
+
+        public ArrayList<String> verifiedOnlinePlayer = new ArrayList<>();
+
+        /**
+         * Skip all authentication checks for all players. Should be used if authentication is handled by another plugin/proxy/etc.
+         */
+        public boolean skipAllAuthChecks = false;
     }
 }
